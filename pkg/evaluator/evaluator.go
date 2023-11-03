@@ -5,6 +5,7 @@ import (
 	"celify/pkg/models"
 	"fmt"
 
+	"github.com/fatih/color"
 	"github.com/google/cel-go/cel"
 	"github.com/google/cel-go/checker/decls"
 	"github.com/pkg/errors"
@@ -39,11 +40,11 @@ func NewEvaluator(targetInput *models.TargetData) (*Evaluator, error) {
 func (ev *Evaluator) EvaluateSingleExpression(expression string) (any, error) {
 	pgr, err := ev.getProgram(expression)
 	if err != nil {
-		return nil, errors.Errorf("Error generating program: %v\n", err)
+		return nil, errors.Errorf("Error generating program: %v", err)
 	}
 	out, _, err := pgr.Eval(ev.targetData.Data)
 	if err != nil {
-		return nil, errors.Errorf("Error evaluating program: %v\n", err)
+		return nil, errors.Errorf("Error evaluating program: %v", err)
 	}
 	return out.Value(), nil
 }
@@ -51,17 +52,18 @@ func (ev *Evaluator) EvaluateSingleExpression(expression string) (any, error) {
 func (ev *Evaluator) Evaluate(validations []models.ValidationRule) (any, error) {
 	var result any
 	var err error
-	for _, validation := range validations {
+	for i, validation := range validations {
+		color.New(color.Bold).Add(color.Underline).Printf("validation %d:\n", i+1)
 		result, err = ev.EvaluateSingleExpression(validation.Expression)
 		if err != nil {
-			return false, errors.Errorf("Error evaluating expression '%s': %v\n", validation.Expression, err)
+			return false, errors.Errorf("Error evaluating expression '%s': %v", validation.Expression, err)
 		}
 		if !result.(bool) {
 			errMsg, err := ev.EvaluateSingleExpression(validation.ErrorMessage)
 			if err != nil {
-				return false, errors.Errorf("Error evaluating error message expression '%s': %v\n", validation.ErrorMessage, err)
+				return false, errors.Errorf("Error evaluating error message expression '%s': %v", validation.ErrorMessage, err)
 			}
-			fmt.Println(helpers.GetErrorStr(errMsg.(string)))
+			fmt.Printf("%s %s\n", helpers.GetErrorStr(), color.YellowString(errMsg.(string)))
 			ev.printEvaluatedObject(validation.Expression, ev.targetData.Format)
 		}
 	}
@@ -71,11 +73,11 @@ func (ev *Evaluator) Evaluate(validations []models.ValidationRule) (any, error) 
 func (ev *Evaluator) getProgram(expression string) (cel.Program, error) {
 	ast, issues := ev.env.Compile(expression)
 	if issues != nil && issues.Err() != nil {
-		return nil, errors.Errorf("Failed to compile expression '%s': %v\n", expression, issues.Err())
+		return nil, errors.Errorf("Failed to compile expression '%s': %v", expression, issues.Err())
 	}
 	pgr, err := ev.env.Program(ast)
 	if err != nil {
-		return nil, errors.Errorf("Failed to generate program for expression '%s': %v\n", expression, err)
+		return nil, errors.Errorf("Failed to generate program for expression '%s': %v", expression, err)
 	}
 	return pgr, nil
 }
@@ -83,11 +85,11 @@ func (ev *Evaluator) getProgram(expression string) (cel.Program, error) {
 func (ev *Evaluator) printEvaluatedObject(expression, format string) error {
 	obj, err := ev.getEvaluatedObject(expression)
 	if err != nil {
-		return errors.Errorf("Error evaluating object expression '%s': %v\n", expression, err)
+		return errors.Errorf("Error evaluating object expression '%s': %v", expression, err)
 	}
 	objStr, err := helpers.MarshalData(obj, format)
 	if err != nil {
-		return errors.Errorf("Error marshalling object: %v\n", err)
+		return errors.Errorf("Error marshalling object: %v", err)
 	}
 	helpers.PrintEvaluatedObject(string(objStr), format)
 	return nil
@@ -97,7 +99,7 @@ func (ev *Evaluator) getEvaluatedObject(expression string) (any, error) {
 	objExpr := helpers.ExtractObject(expression)
 	obj, err := ev.EvaluateSingleExpression(objExpr)
 	if err != nil {
-		return nil, errors.Errorf("Error evaluating object expression '%s': %v\n", objExpr, err)
+		return nil, errors.Errorf("Error evaluating object expression '%s': %v", objExpr, err)
 	}
 	return obj, nil
 }

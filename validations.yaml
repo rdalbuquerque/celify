@@ -1,5 +1,5 @@
 validations:
 - expression: "size(object.spec.template.spec.containers) != 1"
   errorMessage: "'wrong number of containers, expected different than 1, got ' + string(size(object.spec.template.spec.containers))"
-- expression: "object.metadata.name == 'my-deployment'"
+- expression: "object.metadata.teste != 'my-deployment'"
   errorMessage: "'expected deployment name to be different than my-deployment, got ' + object.metadata.name"

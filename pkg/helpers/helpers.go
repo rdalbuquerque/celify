@@ -12,41 +12,29 @@ import (
 	"github.com/tidwall/pretty"
 )
 
-const (
-	colorRed   = "\033[31m"
-	colorGreen = "\033[32m"
-	colorBlue  = "\033[34m"
-	colorReset = "\033[0m"
-)
-
 func ExtractObject(input string) string {
 	re := regexp.MustCompile(`object(?:\.[^.()\s+]+)*`)
 	return re.FindString(input)
 }
 
-func GetErrorStr(input string) string {
-	return fmt.Sprintf("%s|%s %s", colorRed, colorReset, input)
+func GetErrorStr() string {
+	return color.New(color.FgRed).Sprint("|")
 }
 
-func GetMultilineErrorStr(input string) string {
+func PrintMultilineError(input string, color *color.Color) {
 	errLines := strings.Split(input, "\n")
-	for i, line := range errLines {
-		errLines[i] = GetErrorStr(line)
+	for _, line := range errLines {
+		fmt.Printf("%s %s\n", GetErrorStr(), color.Sprint(line))
 	}
-	return strings.Join(errLines, "")
-}
-
-func PrintMultilineError(input string) {
-	fmt.Print(GetMultilineErrorStr(input))
 }
 
 func PrintEvaluatedObject(objStr, format string) {
-	fmt.Println(GetErrorStr("Evaluated object:"))
+	fmt.Printf("%s %s", GetErrorStr(), color.New(color.Underline).Sprintln("Evaluated object:"))
 	if format == "yaml" {
-		c := color.New(color.FgGreen)
-		c.Println(objStr)
+		c := color.New(color.FgBlue)
+		PrintMultilineError(objStr, c)
 	} else if format == "json" {
-		fmt.Println(string(pretty.Color(pretty.Pretty([]byte(objStr)), nil)))
+		PrintMultilineError(string(pretty.Color(pretty.Pretty([]byte(objStr)), nil)), nil)
 	}
 }
 

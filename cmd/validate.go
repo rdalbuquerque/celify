@@ -2,11 +2,10 @@
 package cmd
 
 import (
-	"celify/pkg/helpers"
 	"celify/pkg/validate"
-	"fmt"
 	"os"
 
+	"github.com/fatih/color"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
@@ -30,19 +29,19 @@ var validateCmd = &cobra.Command{
 		if validations != "" {
 			result, err = validate.Validate(validations, target)
 			if err != nil {
-				return errors.New(helpers.GetMultilineErrorStr(fmt.Sprintf("Error during validation: %v\n", err)))
+				return errors.Errorf(color.New(color.FgRed).Add(color.Bold).Sprintf("Error during validation: %v", err))
 			}
 		} else {
 			result, err = validate.ValidateSingleExpression(expression, target)
 			if err != nil {
-				return errors.New(helpers.GetMultilineErrorStr(fmt.Sprintf("Error during validation: %v\n", err)))
+				return errors.Errorf(color.New(color.FgHiRed).Add(color.Bold).Sprintf("Error during validation: %v", err))
 			}
 		}
 		if !result {
-			fmt.Print(helpers.GetErrorStr("validation failed"))
+			color.New(color.FgRed).Add(color.Bold).Println("validation failed")
 			os.Exit(1)
 		}
-		fmt.Println("validation passed")
+		color.New(color.FgGreen).Add(color.Bold).Println("validation passed")
 		return nil
 	},
 }

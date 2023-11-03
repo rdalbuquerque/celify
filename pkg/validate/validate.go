@@ -35,22 +35,22 @@ func Validate(validationInput, targetInput string) (bool, error) {
 	// Load validation rules
 	validations, err := readValidations(validationInput)
 	if err != nil {
-		return false, errors.Errorf("Error reading validations: %v\n", err)
+		return false, errors.Errorf("Error reading validations: %v", err)
 	}
 
 	// Load target YAML data
 	targetData, err := readTarget(targetInput)
 	if err != nil {
-		return false, errors.Errorf("Error reading target: %v\n", err)
+		return false, errors.Errorf("Error reading target: %v", err)
 	}
 
 	eval, err := evaluator.NewEvaluator(targetData)
 	if err != nil {
-		return false, errors.Errorf("Error creating evaluator: %v\n", err)
+		return false, errors.Errorf("Error creating evaluator: %v", err)
 	}
 	result, err := eval.Evaluate(validations)
 	if err != nil {
-		return false, errors.Errorf("Error evaluating expression: %v\n", err)
+		return false, errors.Errorf("Error evaluating expression: %v", err)
 	}
 
 	return result.(bool), nil
@@ -65,11 +65,11 @@ func readValidations(input string) ([]models.ValidationRule, error) {
 	if err != nil {
 		configData, err := os.ReadFile(input)
 		if err != nil {
-			return nil, errors.Errorf("Error reading validations: %v\n", err)
+			return nil, errors.Errorf("Error reading validations: %v", err)
 		}
 		err = yaml.Unmarshal(configData, &vals)
 		if err != nil {
-			return nil, errors.Errorf("Error parsing validations YAML: %v\n", err)
+			return nil, errors.Errorf("Error parsing validations YAML: %v", err)
 		}
 	}
 
@@ -85,11 +85,11 @@ func readTarget(input string) (*models.TargetData, error) {
 	if err != nil {
 		targetData, err := os.ReadFile(input)
 		if err != nil {
-			return nil, errors.Errorf("Error reading target: %v\n", err)
+			return nil, errors.Errorf("Error reading target: %v", err)
 		}
 		format, err = helpers.UnmarshalData(targetData, &targetObject)
 		if err != nil {
-			return nil, errors.Errorf("Error parsing target YAML: %v\n", err)
+			return nil, errors.Errorf("Error parsing target YAML: %v", err)
 		}
 	}
 
