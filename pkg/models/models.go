@@ -8,3 +8,8 @@ type ValidationRule struct {
 type ValidationConfig struct {
 	Validations []ValidationRule `yaml:"validations"`
 }
+
+type TargetData struct {
+	Data   map[string]interface{}
+	Format string
+}

@@ -10,7 +10,7 @@
             "request": "launch",
             "mode": "auto",
             "program": "${workspaceFolder}/main.go",
-            "args": ["validate","--target","target.yaml","--expression", "object.metadata.name == test-deployment"]
+            "args": ["validate","--target","target.yaml","--validations", "validations.yaml"]
         }
     ]
 }
