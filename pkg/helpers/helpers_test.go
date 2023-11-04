@@ -140,7 +140,7 @@ foo:
 			if err != nil {
 				t.Errorf("Error unmarshalling data: %v", err)
 			}
-			if !compareInterfaces(actual, tc.expected) {
+			if !CompareInterfaces(actual, tc.expected) {
 				t.Errorf("Expected '%v', got '%v'", tc.expected, actual)
 			}
 		})

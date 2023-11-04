@@ -93,7 +93,10 @@ func TestPrintEvaluatedObject(t *testing.T) {
 	eval, err := NewEvaluator(&models.TargetData{
 		Data: map[string]interface{}{
 			"object": map[string]interface{}{
-				"foo": "bar",
+				"foo": map[string]interface{}{
+					"bar": "baz",
+					"qux": "quux",
+				},
 			},
 		},
 		Format: "yaml",
@@ -109,16 +112,17 @@ func TestPrintEvaluatedObject(t *testing.T) {
 	out, _ := io.ReadAll(r)
 
 	expected := `| Evaluated object:
-| bar
-|
+| bar: baz
+| qux: quux
+| 
 `
 
 	dmp := diffmatchpatch.New()
-	diffs := dmp.DiffMain(expected, stripANSI(string(out)), false)
+	diffs := dmp.DiffMain(expected, string(out), false)
 
 	os.Stdout = old
 	fmt.Println(dmp.DiffPrettyText(diffs))
-	if stripANSI(string(out)) != expected {
+	if string(out) != expected {
 		t.Errorf("Expected \n%v, got \n%v", expected, string(out))
 	}
 }
