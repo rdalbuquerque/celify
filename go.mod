@@ -7,6 +7,7 @@ require (
 	github.com/go-yaml/yaml v2.1.0+incompatible
 	github.com/google/cel-go v0.18.1
 	github.com/pkg/errors v0.9.1
+	github.com/sergi/go-diff v1.3.1
 	github.com/spf13/cobra v1.7.0
 	github.com/tidwall/pretty v1.2.1
 )
