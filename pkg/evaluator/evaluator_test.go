@@ -1,14 +1,9 @@
 package evaluator
 
 import (
+	"celify/pkg/helpers"
 	"celify/pkg/models"
-	"fmt"
-	"io"
-	"os"
-	"regexp"
 	"testing"
-
-	"github.com/sergi/go-diff/diffmatchpatch"
 )
 
 var evalTests = []struct {
@@ -83,52 +78,73 @@ func TestEvaluateSingleExpression(t *testing.T) {
 	}
 }
 
-func TestPrintEvaluatedObject(t *testing.T) {
-	old := os.Stdout
-	defer func() { os.Stdout = old }()
-
-	r, w, _ := os.Pipe()
-	os.Stdout = w
-
-	eval, err := NewEvaluator(&models.TargetData{
-		Data: map[string]interface{}{
-			"object": map[string]interface{}{
-				"foo": map[string]interface{}{
-					"bar": "baz",
-					"qux": "quux",
+func TestGetEvaluatedObject(t *testing.T) {
+	var testCases = []struct {
+		targetData *models.TargetData
+		expression string
+		expected   interface{}
+	}{
+		{
+			expression: "object.foo > 1",
+			targetData: &models.TargetData{
+				Data: map[string]interface{}{
+					"object": map[string]interface{}{
+						"foo": map[string]interface{}{
+							"bar": "baz",
+							"qux": "quux",
+						},
+					},
 				},
 			},
+			expected: map[string]interface{}{
+				"bar": "baz",
+				"qux": "quux",
+			},
 		},
-		Format: "yaml",
-	})
-	if err != nil {
-		t.Errorf("Error creating evaluator: %v", err)
+		{
+			expression: "size(object.foo)> 1",
+			targetData: &models.TargetData{
+				Data: map[string]interface{}{
+					"object": map[string]interface{}{
+						"foo": map[string]interface{}{
+							"bar": "baz",
+							"qux": "quux",
+						},
+					},
+				},
+			},
+			expected: map[string]interface{}{
+				"bar": "baz",
+				"qux": "quux",
+			},
+		},
+		{
+			expression: "object.foo[0] > 1",
+			targetData: &models.TargetData{
+				Data: map[string]interface{}{
+					"object": map[string]interface{}{
+						"foo": []interface{}{
+							"bar",
+							"baz",
+						},
+					},
+				},
+			},
+			expected: "bar",
+		},
 	}
 
-	eval.printEvaluatedObject("object.foo", "yaml")
-
-	w.Close()
-
-	out, _ := io.ReadAll(r)
-
-	expected := `| Evaluated object:
-| bar: baz
-| qux: quux
-| 
-`
-
-	dmp := diffmatchpatch.New()
-	diffs := dmp.DiffMain(expected, string(out), false)
-
-	os.Stdout = old
-	fmt.Println(dmp.DiffPrettyText(diffs))
-	if string(out) != expected {
-		t.Errorf("Expected \n%v, got \n%v", expected, string(out))
+	for _, tc := range testCases {
+		eval, err := NewEvaluator(tc.targetData)
+		if err != nil {
+			t.Errorf("Error creating evaluator: %v", err)
+		}
+		evalObj, err := eval.getEvaluatedObject(tc.expression)
+		if err != nil {
+			t.Errorf("Error getting evaluated object: %v", err)
+		}
+		if !helpers.CompareInterfaces(tc.expected, evalObj) {
+			t.Errorf("Expected \n%v, got \n%v", tc.expected, evalObj)
+		}
 	}
-}
-
-// stripANSI removes ANSI color/style codes from the string
-func stripANSI(str string) string {
-	re := regexp.MustCompile(`\x1b\[[0-9;]*m`)
-	return re.ReplaceAllString(str, "")
 }

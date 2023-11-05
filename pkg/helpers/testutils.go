@@ -1,6 +1,7 @@
 package helpers
 
 import (
+	"celify/pkg/models"
 	"fmt"
 	"reflect"
 )
@@ -32,6 +33,8 @@ func ConvertMapInterfaceToMapString(i interface{}) interface{} {
 		for i, v := range x {
 			x[i] = ConvertMapInterfaceToMapString(v)
 		}
+	case *models.TargetData:
+		return ConvertMapInterfaceToMapString(x.Data)
 	}
 	return i
 }

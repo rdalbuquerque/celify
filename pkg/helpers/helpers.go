@@ -34,7 +34,7 @@ func PrintEvaluatedObject(objStr, format string) {
 		c := color.New(color.FgBlue)
 		PrintMultilineError(objStr, c)
 	} else if format == "json" {
-		PrintMultilineError(string(pretty.Color(pretty.Pretty([]byte(objStr)), nil)), nil)
+		PrintMultilineError(string(pretty.Color(pretty.Pretty([]byte(objStr)), nil)), color.New(color.Reset))
 	}
 }
 
