@@ -8,7 +8,7 @@ import (
 
 var evalTests = []struct {
 	targetData  *models.TargetData
-	validations []models.ValidationRule
+	validations models.ValidationConfig
 	expected    any
 }{
 	{
@@ -20,9 +20,11 @@ var evalTests = []struct {
 			},
 			Format: "yaml",
 		},
-		validations: []models.ValidationRule{
-			{
-				Expression: "object.foo == 'bar'",
+		validations: models.ValidationConfig{
+			Validations: []models.ValidationRule{
+				{
+					Expression: "object.foo == 'bar'",
+				},
 			},
 		},
 		expected: true,
@@ -36,10 +38,12 @@ var evalTests = []struct {
 			},
 			Format: "yaml",
 		},
-		validations: []models.ValidationRule{
-			{
-				Expression:   "object.foo == 'baz'",
-				ErrorMessage: "'foo should be baz but was' + object.foo",
+		validations: models.ValidationConfig{
+			Validations: []models.ValidationRule{
+				{
+					Expression:   "object.foo == 'baz'",
+					ErrorMessage: "'foo should be baz but was' + object.foo",
+				},
 			},
 		},
 		expected: false,
@@ -47,17 +51,17 @@ var evalTests = []struct {
 }
 
 func TestEvaluate(t *testing.T) {
-	for _, test := range evalTests {
-		eval, err := NewEvaluator(test.targetData)
+	for _, tc := range evalTests {
+		eval, err := NewEvaluator(tc.targetData)
 		if err != nil {
 			t.Errorf("Error creating evaluator: %v", err)
 		}
-		result, err := eval.Evaluate(test.validations)
+		result, err := eval.Evaluate(tc.validations)
 		if err != nil {
 			t.Errorf("Error evaluating expression: %v", err)
 		}
-		if result != test.expected {
-			t.Errorf("Expected %v, got %v", test.expected, result)
+		if result != tc.expected {
+			t.Errorf("Expected %v, got %v", tc.expected, result)
 		}
 	}
 }
@@ -68,7 +72,7 @@ func TestEvaluateSingleExpression(t *testing.T) {
 		if err != nil {
 			t.Errorf("Error creating evaluator: %v", err)
 		}
-		result, err := eval.EvaluateSingleExpression(test.validations[0].Expression)
+		result, err := eval.EvaluateSingleExpression(test.validations.Validations[0].Expression)
 		if err != nil {
 			t.Errorf("Error evaluating expression: %v", err)
 		}

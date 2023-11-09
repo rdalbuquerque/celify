@@ -3,26 +3,18 @@ package evaluator
 import (
 	"celify/pkg/helpers"
 	"celify/pkg/models"
-	"fmt"
 
-	"github.com/fatih/color"
 	"github.com/google/cel-go/cel"
 	"github.com/google/cel-go/checker/decls"
 	"github.com/pkg/errors"
 )
 
-type EvaluatorInterface interface {
-	Evaluate(targetData map[string]interface{}, validations []models.ValidationRule) ([]any, error)
-	EvaluateSingleExpression() (any, error)
-}
-
 type Evaluator struct {
-	targetData *models.TargetData
+	TargetData *models.TargetData
 	env        *cel.Env
 }
 
 func NewEvaluator(targetInput *models.TargetData) (*Evaluator, error) {
-	// Setup CEL environment
 	env, err := cel.NewEnv(
 		cel.Declarations(
 			decls.NewVar("object", decls.NewMapType(decls.String, decls.Dyn)),
@@ -32,42 +24,69 @@ func NewEvaluator(targetInput *models.TargetData) (*Evaluator, error) {
 		return nil, err
 	}
 	return &Evaluator{
-		targetData: targetInput,
+		TargetData: targetInput,
 		env:        env,
 	}, nil
 }
 
-func (ev *Evaluator) EvaluateSingleExpression(expression string) (any, error) {
+func (ev *Evaluator) executeEvaluation(expression string) (interface{}, error) {
 	pgr, err := ev.getProgram(expression)
 	if err != nil {
-		return nil, errors.Errorf("Error generating program: %v", err)
+		return nil, errors.Errorf("Error getting program: %v", err)
 	}
-	out, _, err := pgr.Eval(ev.targetData.Data)
+	out, _, err := pgr.Eval(ev.TargetData.Data)
 	if err != nil {
-		return nil, errors.Errorf("Error evaluating program: %v", err)
+		return nil, errors.Errorf("Error evaluating expression: %v", err)
 	}
 	return out.Value(), nil
 }
 
-func (ev *Evaluator) Evaluate(validations []models.ValidationRule) (any, error) {
-	var result any
-	var err error
-	for i, validation := range validations {
-		color.New(color.Bold).Add(color.Underline).Printf("validation %d:\n", i+1)
-		result, err = ev.EvaluateSingleExpression(validation.Expression)
-		if err != nil {
-			return false, errors.Errorf("Error evaluating expression '%s': %v", validation.Expression, err)
-		}
-		if !result.(bool) {
-			errMsg, err := ev.EvaluateSingleExpression(validation.ErrorMessage)
-			if err != nil {
-				return false, errors.Errorf("Error evaluating error message expression '%s': %v", validation.ErrorMessage, err)
-			}
-			fmt.Printf("%s %s\n", helpers.GetErrorStr(), color.YellowString(errMsg.(string)))
-			ev.printEvaluatedObject(validation.Expression, ev.targetData.Format)
+func (ev *Evaluator) EvaluateRule(rule models.ValidationRule) models.EvaluationResult {
+	result, err := ev.executeEvaluation(rule.Expression)
+	if err != nil {
+		return models.EvaluationResult{
+			ValidationError: errors.Errorf("Error evaluating expression: %v", err),
 		}
 	}
-	return result, nil
+	objStr := helpers.ExtractObject(rule.Expression)
+	evalObj, err := ev.executeEvaluation(objStr)
+	if err != nil {
+		return models.EvaluationResult{
+			ValidationError: errors.Errorf("Error evaluating object expression '%s': %v", objStr, err),
+		}
+	}
+	var boolResult *bool
+	var ok bool
+	*boolResult, ok = result.(bool)
+	if !ok {
+		boolResult = nil
+	}
+	if !*boolResult {
+		msgExpr, err := ev.executeEvaluation(rule.ErrorMessage)
+		if err != nil {
+			return models.EvaluationResult{
+				ValidationError: errors.Errorf("Error evaluating message expression '%s': %v", rule.ErrorMessage, err),
+			}
+		}
+		return models.EvaluationResult{
+			ValidationResult:  boolResult,
+			EvaluatedObject:   evalObj,
+			FailedRule:        rule.Expression,
+			MessageExpression: msgExpr.(string),
+		}
+	}
+	return models.EvaluationResult{
+		ValidationResult: boolResult,
+		EvaluatedObject:  evalObj,
+	}
+}
+
+func (ev *Evaluator) Evaluate(validations models.ValidationConfig) []models.EvaluationResult {
+	var evalResults []models.EvaluationResult
+	for _, validation := range validations.Validations {
+		evalResults = append(evalResults, ev.EvaluateRule(validation))
+	}
+	return evalResults
 }
 
 func (ev *Evaluator) getProgram(expression string) (cel.Program, error) {
@@ -80,26 +99,4 @@ func (ev *Evaluator) getProgram(expression string) (cel.Program, error) {
 		return nil, errors.Errorf("Failed to generate program for expression '%s': %v", expression, err)
 	}
 	return pgr, nil
-}
-
-func (ev *Evaluator) printEvaluatedObject(expression, format string) error {
-	obj, err := ev.getEvaluatedObject(expression)
-	if err != nil {
-		return errors.Errorf("Error evaluating object expression '%s': %v", expression, err)
-	}
-	objStr, err := helpers.MarshalData(obj, format)
-	if err != nil {
-		return errors.Errorf("Error marshalling object: %v", err)
-	}
-	helpers.PrintEvaluatedObject(string(objStr), format)
-	return nil
-}
-
-func (ev *Evaluator) getEvaluatedObject(expression string) (any, error) {
-	objExpr := helpers.ExtractObject(expression)
-	obj, err := ev.EvaluateSingleExpression(objExpr)
-	if err != nil {
-		return nil, errors.Errorf("Error evaluating object expression '%s': %v", objExpr, err)
-	}
-	return obj, nil
 }

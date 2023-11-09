@@ -13,3 +13,11 @@ type TargetData struct {
 	Data   map[string]interface{}
 	Format string
 }
+
+type EvaluationResult struct {
+	ValidationResult  *bool
+	EvaluatedObject   interface{}
+	FailedRule        string
+	MessageExpression string
+	ValidationError   error
+}

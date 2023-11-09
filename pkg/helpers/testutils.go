@@ -3,6 +3,7 @@ package helpers
 import (
 	"celify/pkg/models"
 	"fmt"
+	"os"
 	"reflect"
 )
 
@@ -37,4 +38,16 @@ func ConvertMapInterfaceToMapString(i interface{}) interface{} {
 		return ConvertMapInterfaceToMapString(x.Data)
 	}
 	return i
+}
+
+func CreateTempFile(content string) (*os.File, error) {
+	file, err := os.CreateTemp("", "test")
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+	if _, err := file.WriteString(content); err != nil {
+		return nil, err
+	}
+	return file, nil
 }
