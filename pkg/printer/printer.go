@@ -15,6 +15,12 @@ type Printer struct {
 	Evaluator *evaluator.Evaluator
 }
 
+func NewPrinter(evaluator *evaluator.Evaluator) *Printer {
+	return &Printer{
+		Evaluator: evaluator,
+	}
+}
+
 func (p *Printer) PrintResults(results []models.EvaluationResult) {
 	for i, result := range results {
 		color.New(color.Bold).Add(color.Underline).Printf("validation %d:\n", i+1)

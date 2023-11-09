@@ -15,6 +15,7 @@ type TargetData struct {
 }
 
 type EvaluationResult struct {
+	Expression        string
 	ValidationResult  *bool
 	EvaluatedObject   interface{}
 	FailedRule        string

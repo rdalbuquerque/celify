@@ -45,6 +45,7 @@ func (ev *Evaluator) EvaluateRule(rule models.ValidationRule) models.EvaluationR
 	result, err := ev.executeEvaluation(rule.Expression)
 	if err != nil {
 		return models.EvaluationResult{
+			Expression:      rule.Expression,
 			ValidationError: errors.Errorf("Error evaluating expression: %v", err),
 		}
 	}
@@ -52,6 +53,7 @@ func (ev *Evaluator) EvaluateRule(rule models.ValidationRule) models.EvaluationR
 	evalObj, err := ev.executeEvaluation(objStr)
 	if err != nil {
 		return models.EvaluationResult{
+			Expression:      rule.Expression,
 			ValidationError: errors.Errorf("Error evaluating object expression '%s': %v", objStr, err),
 		}
 	}
@@ -65,10 +67,12 @@ func (ev *Evaluator) EvaluateRule(rule models.ValidationRule) models.EvaluationR
 		msgExpr, err := ev.executeEvaluation(rule.ErrorMessage)
 		if err != nil {
 			return models.EvaluationResult{
+				Expression:      rule.Expression,
 				ValidationError: errors.Errorf("Error evaluating message expression '%s': %v", rule.ErrorMessage, err),
 			}
 		}
 		return models.EvaluationResult{
+			Expression:        rule.Expression,
 			ValidationResult:  boolResult,
 			EvaluatedObject:   evalObj,
 			FailedRule:        rule.Expression,
@@ -76,6 +80,7 @@ func (ev *Evaluator) EvaluateRule(rule models.ValidationRule) models.EvaluationR
 		}
 	}
 	return models.EvaluationResult{
+		Expression:       rule.Expression,
 		ValidationResult: boolResult,
 		EvaluatedObject:  evalObj,
 	}

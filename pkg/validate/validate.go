@@ -5,32 +5,31 @@ import (
 
 	"celify/pkg/evaluator"
 	"celify/pkg/helpers"
+	"celify/pkg/printer"
 
 	"celify/pkg/models"
 
+	"github.com/hashicorp/go-multierror"
 	"github.com/pkg/errors"
 )
 
-func ValidateSingleExpression(expression, targetInput string) (bool, error) {
+func ValidateSingleExpression(expression, targetInput string) error {
 	targetData, err := readTarget(targetInput)
 	if err != nil {
-		return false, errors.Errorf("Error reading target: %v", err)
+		return errors.Errorf("Error reading target: %v", err)
 	}
 
 	eval, err := evaluator.NewEvaluator(targetData)
 	if err != nil {
-		return false, errors.Errorf("Error creating evaluator: %v", err)
+		return errors.Errorf("Error creating evaluator: %v", err)
 	}
-	result, err := eval.EvaluateSingleExpression(expression)
-	if err != nil {
-		return false, errors.Errorf("Error evaluating expression: %v", err)
+	result := eval.EvaluateRule(models.ValidationRule{Expression: expression})
+	if result.ValidationError != nil {
+		return result.ValidationError
 	}
-
-	boolResult, ok := result.(bool)
-	if !ok {
-		return false, errors.New("result is not a boolean value")
-	}
-	return boolResult, nil
+	printer := printer.NewPrinter(eval)
+	printer.PrintResults([]models.EvaluationResult{result})
+	return getErrors([]models.EvaluationResult{result})
 }
 
 func Validate(validationInput, targetInput string) error {
@@ -38,24 +37,23 @@ func Validate(validationInput, targetInput string) error {
 	var validations models.ValidationConfig
 	_, err := unmarshalData(validationInput, &validations)
 	if err != nil {
-		return false, errors.Errorf("Error reading validations: %v", err)
+		return errors.Errorf("Error reading validations: %v", err)
 	}
 
 	// Load target YAML data
 	targetData, err := readTarget(targetInput)
 	if err != nil {
-		return false, errors.Errorf("Error reading target: %v", err)
+		return errors.Errorf("Error reading target: %v", err)
 	}
 
 	eval, err := evaluator.NewEvaluator(targetData)
 	if err != nil {
-		return false, errors.Errorf("Error creating evaluator: %v", err)
+		return errors.Errorf("Error creating evaluator: %v", err)
 	}
 	results := eval.Evaluate(validations)
-	for _, result := range results {
-		if result.ValidationError != nil {
-			return errors.Errorf("Error validating data")
-		}
+	printer := printer.NewPrinter(eval)
+	printer.PrintResults(results)
+	return getErrors(results)
 }
 
 func unmarshalData(input string, output interface{}) (string, error) {
@@ -88,4 +86,22 @@ func readTarget(input string) (*models.TargetData, error) {
 		Data:   map[string]interface{}{"object": targetObject},
 		Format: format,
 	}, nil
+}
+
+func getErrors(results []models.EvaluationResult) error {
+	var multiErr *multierror.Error
+	for _, result := range results {
+		if result.ValidationError != nil {
+			multiErr.Errors = append(multiErr.Errors, errors.Errorf("Expression: %s\nError: %v", result.Expression, result.ValidationError))
+			continue
+		}
+		if result.ValidationResult == nil {
+			multiErr.Errors = append(multiErr.Errors, errors.Errorf("Expression: %s\nError: Did not evaluate to bool", result.Expression))
+			continue
+		}
+		if !*result.ValidationResult {
+			multiErr.Errors = append(multiErr.Errors, errors.Errorf("Expression: %s\nError: %s", result.Expression, result.MessageExpression))
+		}
+	}
+	return multiErr.ErrorOrNil()
 }
