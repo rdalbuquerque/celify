@@ -3,6 +3,7 @@ package helpers
 import (
 	"encoding/json"
 	"regexp"
+	"strings"
 
 	"github.com/go-yaml/yaml"
 	"github.com/pkg/errors"
@@ -10,7 +11,22 @@ import (
 
 func ExtractObject(input string) string {
 	re := regexp.MustCompile(`object(?:\.[^.()\s+]+)*`)
-	return re.FindString(input)
+	matched := re.FindString(input)
+	if matched != "" {
+		parts := strings.Split(matched, ".")
+		lastPart := parts[len(parts)-1]
+
+		// Define the macros
+		macros := map[string]bool{
+			"all": true, "exists": true, "exists_one": true, "filter": true, "map": true,
+		}
+
+		// Check if the last part is a macro and reconstruct the string without it if so
+		if macros[lastPart] {
+			matched = strings.Join(parts[:len(parts)-1], ".")
+		}
+	}
+	return matched
 }
 
 func UnmarshalData(data []byte, target interface{}) (string, error) {
@@ -32,4 +48,8 @@ func MarshalData(target interface{}, format string) ([]byte, error) {
 	} else {
 		return nil, errors.Errorf("Invalid format '%s' provided", format)
 	}
+}
+
+func BoolPtr(b bool) *bool {
+	return &b
 }

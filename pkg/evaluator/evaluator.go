@@ -3,10 +3,19 @@ package evaluator
 import (
 	"celify/pkg/helpers"
 	"celify/pkg/models"
+	"fmt"
+	"reflect"
 
 	"github.com/google/cel-go/cel"
 	"github.com/google/cel-go/checker/decls"
 	"github.com/pkg/errors"
+)
+
+var (
+	StringType = reflect.TypeOf("")
+	IntType    = reflect.TypeOf(0)
+	BoolType   = reflect.TypeOf(true)
+	AnyType    = reflect.TypeOf(new(interface{})).Elem()
 )
 
 type Evaluator struct {
@@ -29,51 +38,45 @@ func NewEvaluator(targetInput *models.TargetData) (*Evaluator, error) {
 	}, nil
 }
 
-func (ev *Evaluator) executeEvaluation(expression string) (interface{}, error) {
+func (ev *Evaluator) executeEvaluation(expression string, expectedReturnType reflect.Type) (interface{}, error) {
 	pgr, err := ev.getProgram(expression)
 	if err != nil {
-		return nil, errors.Errorf("Error getting program: %v", err)
+		return nil, fmt.Errorf("error getting program: %v", err)
 	}
 	out, _, err := pgr.Eval(ev.TargetData.Data)
 	if err != nil {
-		return nil, errors.Errorf("Error evaluating expression: %v", err)
+		return nil, fmt.Errorf("error evaluating expression: %v", err)
 	}
-	return out.Value(), nil
+	return out.ConvertToNative(expectedReturnType)
 }
 
 func (ev *Evaluator) EvaluateRule(rule models.ValidationRule) models.EvaluationResult {
-	result, err := ev.executeEvaluation(rule.Expression)
+	result, err := ev.executeEvaluation(rule.Expression, BoolType)
 	if err != nil {
 		return models.EvaluationResult{
 			Expression:      rule.Expression,
-			ValidationError: errors.Errorf("Error evaluating expression: %v", err),
+			ValidationError: fmt.Errorf("error evaluating expression: %w", err),
 		}
 	}
-	objStr := helpers.ExtractObject(rule.Expression)
-	evalObj, err := ev.executeEvaluation(objStr)
+	boolResult := result.(bool)
+
+	objExpr := helpers.ExtractObject(rule.Expression)
+	evalObj, err := ev.executeEvaluation(objExpr, AnyType)
 	if err != nil {
-		return models.EvaluationResult{
-			Expression:      rule.Expression,
-			ValidationError: errors.Errorf("Error evaluating object expression '%s': %v", objStr, err),
-		}
+		evalObj = "unable to evaluate object"
 	}
-	var boolResult *bool
-	var ok bool
-	*boolResult, ok = result.(bool)
-	if !ok {
-		boolResult = nil
-	}
-	if !*boolResult {
-		msgExpr, err := ev.executeEvaluation(rule.ErrorMessage)
+
+	if !boolResult && rule.MessageExpression != "" {
+		msgExpr, err := ev.executeEvaluation(rule.MessageExpression, StringType)
 		if err != nil {
 			return models.EvaluationResult{
 				Expression:      rule.Expression,
-				ValidationError: errors.Errorf("Error evaluating message expression '%s': %v", rule.ErrorMessage, err),
+				ValidationError: fmt.Errorf("error evaluating message expression: %w", err),
 			}
 		}
 		return models.EvaluationResult{
 			Expression:        rule.Expression,
-			ValidationResult:  boolResult,
+			ValidationResult:  &boolResult,
 			EvaluatedObject:   evalObj,
 			FailedRule:        rule.Expression,
 			MessageExpression: msgExpr.(string),
@@ -81,7 +84,7 @@ func (ev *Evaluator) EvaluateRule(rule models.ValidationRule) models.EvaluationR
 	}
 	return models.EvaluationResult{
 		Expression:       rule.Expression,
-		ValidationResult: boolResult,
+		ValidationResult: &boolResult,
 		EvaluatedObject:  evalObj,
 	}
 }

@@ -1,6 +1,7 @@
 package validate
 
 import (
+	"fmt"
 	"os"
 
 	"celify/pkg/evaluator"
@@ -89,19 +90,27 @@ func readTarget(input string) (*models.TargetData, error) {
 }
 
 func getErrors(results []models.EvaluationResult) error {
-	var multiErr *multierror.Error
+	multiErr := &multierror.Error{Errors: []error{}}
 	for _, result := range results {
 		if result.ValidationError != nil {
-			multiErr.Errors = append(multiErr.Errors, errors.Errorf("Expression: %s\nError: %v", result.Expression, result.ValidationError))
+			multiErr.Errors = append(multiErr.Errors, fmt.Errorf("expression: %s\n\t  error: %v", result.Expression, result.ValidationError))
 			continue
 		}
 		if result.ValidationResult == nil {
-			multiErr.Errors = append(multiErr.Errors, errors.Errorf("Expression: %s\nError: Did not evaluate to bool", result.Expression))
+			multiErr.Errors = append(multiErr.Errors, fmt.Errorf("expression: %s\n\t  error: Did not evaluate to bool", result.Expression))
 			continue
 		}
 		if !*result.ValidationResult {
-			multiErr.Errors = append(multiErr.Errors, errors.Errorf("Expression: %s\nError: %s", result.Expression, result.MessageExpression))
+			errStr := fmt.Sprintf("expression: %s", result.Expression)
+			if result.MessageExpression != "" {
+				msgExprErrStr := fmt.Sprintf("error: %s", result.MessageExpression)
+				errStr = fmt.Sprintf("%s\n\t  %s", errStr, msgExprErrStr)
+			}
+			multiErr.Errors = append(multiErr.Errors, errors.New(errStr))
 		}
 	}
-	return multiErr.ErrorOrNil()
+	if len(multiErr.Errors) == 0 {
+		return nil
+	}
+	return printer.FmtError(multiErr.ErrorOrNil())
 }

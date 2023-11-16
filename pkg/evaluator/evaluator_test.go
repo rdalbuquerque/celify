@@ -1,13 +1,16 @@
 package evaluator
 
 import (
+	"celify/pkg/helpers"
 	"celify/pkg/models"
+	"reflect"
+	"testing"
 )
 
 var evalTests = []struct {
 	targetData  *models.TargetData
 	validations models.ValidationConfig
-	expected    any
+	expected    []models.EvaluationResult
 }{
 	{
 		targetData: &models.TargetData{
@@ -25,7 +28,13 @@ var evalTests = []struct {
 				},
 			},
 		},
-		expected: true,
+		expected: []models.EvaluationResult{
+			{
+				Expression:       "object.foo == 'bar'",
+				ValidationResult: helpers.BoolPtr(true),
+				EvaluatedObject:  "bar",
+			},
+		},
 	},
 	{
 		targetData: &models.TargetData{
@@ -39,114 +48,123 @@ var evalTests = []struct {
 		validations: models.ValidationConfig{
 			Validations: []models.ValidationRule{
 				{
-					Expression:   "object.foo == 'baz'",
-					ErrorMessage: "'foo should be baz but was' + object.foo",
+					Expression:        "object.foo == 'baz'",
+					MessageExpression: "'foo should be baz but was ' + object.foo",
 				},
 			},
 		},
-		expected: false,
+		expected: []models.EvaluationResult{
+			{
+				Expression:        "object.foo == 'baz'",
+				ValidationResult:  helpers.BoolPtr(false),
+				EvaluatedObject:   "bar",
+				FailedRule:        "object.foo == 'baz'",
+				MessageExpression: "foo should be baz but was bar",
+			},
+		},
 	},
 }
 
-// func TestEvaluate(t *testing.T) {
-// 	for _, tc := range evalTests {
-// 		eval, err := NewEvaluator(tc.targetData)
-// 		if err != nil {
-// 			t.Errorf("Error creating evaluator: %v", err)
-// 		}
-// 		result, err := eval.Evaluate(tc.validations)
-// 		if err != nil {
-// 			t.Errorf("Error evaluating expression: %v", err)
-// 		}
-// 		if result != tc.expected {
-// 			t.Errorf("Expected %v, got %v", tc.expected, result)
-// 		}
-// 	}
-// }
+func TestEvaluate(t *testing.T) {
+	for _, tc := range evalTests {
+		eval, err := NewEvaluator(tc.targetData)
+		if err != nil {
+			t.Errorf("Error creating evaluator: %v", err)
+		}
+		result := eval.Evaluate(tc.validations)
+		if err != nil {
+			t.Errorf("Error evaluating expression: %v", err)
+		}
+		// compare result to expected
+		if !reflect.DeepEqual(result, tc.expected) {
+			t.Errorf("Expected %v, got %v", tc.expected, result)
+		}
+	}
+}
 
-// func TestEvaluateSingleExpression(t *testing.T) {
-// 	for _, test := range evalTests {
-// 		eval, err := NewEvaluator(test.targetData)
-// 		if err != nil {
-// 			t.Errorf("Error creating evaluator: %v", err)
-// 		}
-// 		result, err := eval.EvaluateSingleExpression(test.validations.Validations[0].Expression)
-// 		if err != nil {
-// 			t.Errorf("Error evaluating expression: %v", err)
-// 		}
-// 		if result != test.expected {
-// 			t.Errorf("Expected %v, got %v", test.expected, result)
-// 		}
-// 	}
-// }
+func TestEvaluateSingleExpression(t *testing.T) {
+	for _, test := range evalTests {
+		eval, err := NewEvaluator(test.targetData)
+		if err != nil {
+			t.Errorf("Error creating evaluator: %v", err)
+		}
+		result := eval.EvaluateRule(test.validations.Validations[0])
+		if err != nil {
+			t.Errorf("Error evaluating expression: %v", err)
+		}
+		if !reflect.DeepEqual(result, test.expected[0]) {
+			t.Errorf("Expected %v, got %v", test.expected[0], result)
+		}
+	}
+}
 
-// func TestGetEvaluatedObject(t *testing.T) {
-// 	var testCases = []struct {
-// 		targetData *models.TargetData
-// 		expression string
-// 		expected   interface{}
-// 	}{
-// 		{
-// 			expression: "object.foo > 1",
-// 			targetData: &models.TargetData{
-// 				Data: map[string]interface{}{
-// 					"object": map[string]interface{}{
-// 						"foo": map[string]interface{}{
-// 							"bar": "baz",
-// 							"qux": "quux",
-// 						},
-// 					},
-// 				},
-// 			},
-// 			expected: map[string]interface{}{
-// 				"bar": "baz",
-// 				"qux": "quux",
-// 			},
-// 		},
-// 		{
-// 			expression: "size(object.foo)> 1",
-// 			targetData: &models.TargetData{
-// 				Data: map[string]interface{}{
-// 					"object": map[string]interface{}{
-// 						"foo": map[string]interface{}{
-// 							"bar": "baz",
-// 							"qux": "quux",
-// 						},
-// 					},
-// 				},
-// 			},
-// 			expected: map[string]interface{}{
-// 				"bar": "baz",
-// 				"qux": "quux",
-// 			},
-// 		},
-// 		{
-// 			expression: "object.foo[0] > 1",
-// 			targetData: &models.TargetData{
-// 				Data: map[string]interface{}{
-// 					"object": map[string]interface{}{
-// 						"foo": []interface{}{
-// 							"bar",
-// 							"baz",
-// 						},
-// 					},
-// 				},
-// 			},
-// 			expected: "bar",
-// 		},
-// 	}
-
-// 	for _, tc := range testCases {
-// 		eval, err := NewEvaluator(tc.targetData)
-// 		if err != nil {
-// 			t.Errorf("Error creating evaluator: %v", err)
-// 		}
-// 		evalObj, err := eval.getEvaluatedObject(tc.expression)
-// 		if err != nil {
-// 			t.Errorf("Error getting evaluated object: %v", err)
-// 		}
-// 		if !helpers.CompareInterfaces(tc.expected, evalObj) {
-// 			t.Errorf("Expected \n%v, got \n%v", tc.expected, evalObj)
-// 		}
-// 	}
-// }
+func TestExecuteEvaluation(t *testing.T) {
+	var execEvalTests = []struct {
+		targetData         *models.TargetData
+		expression         string
+		expectedReturnType reflect.Type
+		errorExpected      bool
+	}{
+		{
+			targetData: &models.TargetData{
+				Data: map[string]interface{}{
+					"object": map[string]interface{}{
+						"foo": "bar",
+					},
+				},
+			},
+			expression:         "object.foo == 'bar'",
+			expectedReturnType: BoolType,
+			errorExpected:      false,
+		},
+		{
+			targetData: &models.TargetData{
+				Data: map[string]interface{}{
+					"object": map[string]interface{}{
+						"foo": "bar",
+					},
+				},
+			},
+			expression:         "string(object.foo)",
+			expectedReturnType: StringType,
+			errorExpected:      false,
+		},
+		{
+			targetData: &models.TargetData{
+				Data: map[string]interface{}{
+					"object": map[string]interface{}{
+						"foo": []string{"bar", "baz"},
+					},
+				},
+			},
+			expression:         "object.foo",
+			expectedReturnType: AnyType,
+			errorExpected:      false,
+		},
+		{
+			targetData: &models.TargetData{
+				Data: map[string]interface{}{
+					"object": map[string]interface{}{
+						"foo": "bar",
+					},
+				},
+			},
+			expression:         "object",
+			expectedReturnType: IntType,
+			errorExpected:      true,
+		},
+	}
+	for _, tc := range execEvalTests {
+		eval, err := NewEvaluator(tc.targetData)
+		if err != nil {
+			t.Errorf("Error creating evaluator: %v", err)
+		}
+		_, err = eval.executeEvaluation(tc.expression, tc.expectedReturnType)
+		if err != nil && !tc.errorExpected {
+			t.Errorf("Error executing evaluation: %v", err)
+		}
+		if err == nil && tc.errorExpected {
+			t.Errorf("Expected error but got none")
+		}
+	}
+}

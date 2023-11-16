@@ -29,6 +29,14 @@ func TestExtractObject(t *testing.T) {
 			input:    "has(object.foo.bar.baz[0])",
 			expected: "object.foo.bar.baz[0]",
 		},
+		{
+			input:    "object.foos.all(foo => foo.bar == 'baz')",
+			expected: "object.foos",
+		},
+		{
+			input:    "object.foos[1].map(n, n*n)",
+			expected: "object.foos[1]",
+		},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.input, func(t *testing.T) {

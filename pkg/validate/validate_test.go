@@ -3,7 +3,11 @@ package validate
 import (
 	"celify/pkg/helpers"
 	"celify/pkg/models"
+	"celify/pkg/printer"
 	"testing"
+
+	"github.com/hashicorp/go-multierror"
+	"github.com/pkg/errors"
 )
 
 func TestReadTarget(t *testing.T) {
@@ -53,10 +57,9 @@ func TestReadTarget(t *testing.T) {
 }
 
 var validateTestCases = []struct {
-	validations              string
-	target                   string
-	validationError          bool
-	expectedValidationResult bool
+	validations   string
+	target        string
+	expectedError error
 }{
 	{
 		validations: `validations:
@@ -65,31 +68,28 @@ var validateTestCases = []struct {
 		target: `
 foo: bar
 `,
-		validationError:          false,
-		expectedValidationResult: true,
+		expectedError: nil,
 	},
 	{
 		validations: `validations:
 - expression: "object.foo == 'bar'"
-  errorMessage: "'object.foo should be bar but was ' + object.foo"
+  MessageExpression: "'object.foo should be bar but was ' + object.foo"
 `,
 		target: `
 foo: baz
 `,
-		validationError:          false,
-		expectedValidationResult: false,
+		expectedError: &multierror.Error{Errors: []error{printer.FmtError(errors.Errorf("Expression: object.foo == 'bar'\n\t  Error: 'object.foo should be bar but was baz'"))}},
 	},
 	{
 		validations: `validations:
 - expression: "object.foo == 'bar'"
-  errorMessage: "'foo should be bar but was ' + object.foo"
+  MessageExpression: "'foo should be bar but was ' + object.foo"
 `,
 		target: `{
 	"foo": "baz"
 }
 `,
-		validationError:          false,
-		expectedValidationResult: false,
+		expectedError: &multierror.Error{Errors: []error{printer.FmtError(errors.Errorf("Expression: object.foo == 'bar'\n\t  Error: 'foo should be bar but was baz'"))}},
 	},
 	{
 		validations: `validations:
@@ -101,72 +101,57 @@ foo: baz
 	}
 }
 `,
-		validationError:          false,
-		expectedValidationResult: true,
+		expectedError: nil,
 	},
 }
 
-// func TestValidateWithRawData(t *testing.T) {
-// 	for _, tc := range validateTestCases {
-// 		result, err := Validate(tc.validations, tc.target)
-// 		if err != nil && !tc.validationError {
-// 			t.Errorf("Expected no error, got %v", err)
-// 		}
-// 		if err == nil && tc.validationError {
-// 			t.Errorf("Expected error, got none")
-// 		}
-// 		if result != tc.expectedValidationResult {
-// 			t.Errorf("Expected %v, got %v", tc.expectedValidationResult, result)
-// 		}
-// 	}
-// }
+func TestValidateWithRawData(t *testing.T) {
+	for _, tc := range validateTestCases {
+		err := Validate(tc.validations, tc.target)
+		if err != nil && tc.expectedError == nil {
+			t.Errorf("Expected no error, got %v", err)
+		}
+	}
+}
 
-// func TestValidateWithFiles(t *testing.T) {
-// 	for _, tc := range validateTestCases {
-// 		validationsFile, err := helpers.CreateTempFile(tc.validations)
-// 		if err != nil {
-// 			t.Errorf("Error creating validations file: %v", err)
-// 			t.FailNow()
-// 		}
-// 		targetFile, err := helpers.CreateTempFile(tc.target)
-// 		if err != nil {
-// 			t.Errorf("Error creating target file: %v", err)
-// 			t.FailNow()
-// 		}
-// 		result, err := Validate(validationsFile.Name(), targetFile.Name())
-// 		if err != nil && !tc.validationError {
-// 			t.Errorf("Expected no error, got %v", err)
-// 		}
-// 		if err == nil && tc.validationError {
-// 			t.Errorf("Expected error, got none")
-// 		}
-// 		if result != tc.expectedValidationResult {
-// 			t.Errorf("Expected %v, got %v", tc.expectedValidationResult, result)
-// 		}
-// 	}
-// }
+func TestValidateWithFiles(t *testing.T) {
+	for _, tc := range validateTestCases {
+		validationsFile, err := helpers.CreateTempFile(tc.validations)
+		if err != nil {
+			t.Errorf("Error creating validations file: %v", err)
+			t.FailNow()
+		}
+		targetFile, err := helpers.CreateTempFile(tc.target)
+		if err != nil {
+			t.Errorf("Error creating target file: %v", err)
+			t.FailNow()
+		}
+		err = Validate(validationsFile.Name(), targetFile.Name())
+		if err != nil && tc.expectedError == nil {
+			t.Errorf("Expected no error, got %v", err)
+		}
+
+	}
+}
 
 var validateSingleExpressionTestCases = []struct {
-	expression              string
-	target                  string
-	validationError         bool
-	expectedValidationValue bool
+	expression    string
+	target        string
+	errorExpected bool
 }{
 	{
 		expression: `object.foo == 'bar'`,
 		target: `
 foo: bar
 `,
-		validationError:         false,
-		expectedValidationValue: true,
+		errorExpected: false,
 	},
 	{
 		expression: `object.foo == 'bar'`,
 		target: `
 foo: baz
 `,
-		validationError:         false,
-		expectedValidationValue: false,
+		errorExpected: true,
 	},
 	{
 		expression: `has(object.foo.bar)`,
@@ -176,42 +161,35 @@ foo: baz
 	}
 }
 `,
-		validationError:         false,
-		expectedValidationValue: true,
+		errorExpected: false,
 	},
 }
 
-// func TestValidateSingleExpressionWithRawData(t *testing.T) {
-// 	for _, tc := range validateSingleExpressionTestCases {
-// 		result, err := ValidateSingleExpression(tc.expression, tc.target)
-// 		if err != nil && !tc.validationError {
-// 			t.Errorf("Expected no error, got %v", err)
-// 		}
-// 		if err == nil && tc.validationError {
-// 			t.Errorf("Expected error, got none")
-// 		}
-// 		if result != tc.expectedValidationValue {
-// 			t.Errorf("Expected %v, got %v", tc.expectedValidationValue, result)
-// 		}
-// 	}
-// }
+func TestValidateSingleExpressionWithRawData(t *testing.T) {
+	for _, tc := range validateSingleExpressionTestCases {
+		err := ValidateSingleExpression(tc.expression, tc.target)
+		if err != nil && !tc.errorExpected {
+			t.Errorf("Expected no error, got %v", err)
+		}
+		if err == nil && tc.errorExpected {
+			t.Errorf("Expected error, got none")
+		}
+	}
+}
 
-// func TestValidateSingleExpressionWithFiles(t *testing.T) {
-// 	for _, tc := range validateSingleExpressionTestCases {
-// 		targetFile, err := helpers.CreateTempFile(tc.target)
-// 		if err != nil {
-// 			t.Errorf("Error creating target file: %v", err)
-// 			t.FailNow()
-// 		}
-// 		result, err := ValidateSingleExpression(tc.expression, targetFile.Name())
-// 		if err != nil && !tc.validationError {
-// 			t.Errorf("Expected no error, got %v", err)
-// 		}
-// 		if err == nil && tc.validationError {
-// 			t.Errorf("Expected error, got none")
-// 		}
-// 		if result != tc.expectedValidationValue {
-// 			t.Errorf("Expected %v, got %v", tc.expectedValidationValue, result)
-// 		}
-// 	}
-// }
+func TestValidateSingleExpressionWithFiles(t *testing.T) {
+	for _, tc := range validateSingleExpressionTestCases {
+		targetFile, err := helpers.CreateTempFile(tc.target)
+		if err != nil {
+			t.Errorf("Error creating target file: %v", err)
+			t.FailNow()
+		}
+		err = ValidateSingleExpression(tc.expression, targetFile.Name())
+		if err != nil && !tc.errorExpected {
+			t.Errorf("Expected no error, got %v", err)
+		}
+		if err == nil && tc.errorExpected {
+			t.Errorf("Expected error, got none")
+		}
+	}
+}

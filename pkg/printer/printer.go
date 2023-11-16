@@ -22,20 +22,22 @@ func NewPrinter(evaluator *evaluator.Evaluator) *Printer {
 }
 
 func (p *Printer) PrintResults(results []models.EvaluationResult) {
-	for i, result := range results {
-		color.New(color.Bold).Add(color.Underline).Printf("validation %d:\n", i+1)
+	for _, result := range results {
+		color.New(color.Bold).Add(color.Underline).Printf("validation \"%s\":\n", result.Expression)
 		if result.ValidationError != nil {
-			color.New(color.FgRed).Printf("Error: %v\n", result.ValidationError)
+			color.New(color.FgRed).Printf("Error: %v\n\n", result.ValidationError)
 			continue
 		}
 		if result.ValidationResult == nil {
-			color.New(color.FgHiYellow).Printf("%s result is not true or false\n", getErrorStr())
+			color.New(color.FgHiYellow).Printf("%s result is not true or false\n\n", getErrorStr())
 			continue
 		}
 		success := *result.ValidationResult
 		if !success {
-			color.New(color.FgHiYellow).Printf("%s %s\n", getErrorStr(), result.MessageExpression)
+			fmt.Printf("%s %s\n", getErrorStr(), color.YellowString(result.MessageExpression))
 			printEvaluatedObject(result.EvaluatedObject, p.Evaluator.TargetData.Format)
+			fmt.Println()
+			continue
 		}
 		color.New(color.FgGreen).Printf("Success: %v\n", success)
 	}
@@ -66,4 +68,10 @@ func printEvaluatedObject(obj interface{}, format string) {
 	} else if format == "json" {
 		PrintMultilineError(string(pretty.Color(pretty.Pretty(byteObj), nil)), color.New(color.Reset))
 	}
+}
+
+func FmtError(err error) error {
+	summaryStr := color.New(color.FgRed).Add(color.Underline).Add(color.Bold).Sprint("Error Summary:")
+	errStr := color.New(color.FgRed).Sprint(err)
+	return fmt.Errorf("%s\n%s", summaryStr, errStr)
 }

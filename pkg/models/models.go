@@ -1,8 +1,8 @@
 package models
 
 type ValidationRule struct {
-	Expression   string `yaml:"expression"`
-	ErrorMessage string `yaml:"errorMessage"`
+	Expression        string `yaml:"expression"`
+	MessageExpression string `yaml:"messageExpression"`
 }
 
 type ValidationConfig struct {
