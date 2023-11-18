@@ -34,11 +34,23 @@ jobs:
         mkdir -p bin
         go build -o "$BINARY_NAME"
 
+    - name: Compress Binary (Linux)
+      if: matrix.goos == 'linux'
+      run: |
+        tar -czvf ${{ env.BINARY_NAME }}.tar.gz ${{ env.BINARY_NAME }}
+  
+    - name: Compress Binary (Windows)
+      if: matrix.goos == 'windows'
+      run: |
+        7z a ${{ env.BINARY_NAME }}.zip ${{ env.BINARY_NAME }}
+
     - name: Upload Artifact
       uses: actions/upload-artifact@v2
       with:
         name: ${{ env.BINARY_NAME }}
-        path: ${{ env.BINARY_NAME }}
+        path: |
+          ${{ env.BINARY_NAME }}.tar.gz
+          ${{ env.BINARY_NAME }}.zip
 
   release:
     name: Release
@@ -57,8 +69,8 @@ jobs:
       run: |
         pwd
         ls -l
-        ls -l celify_${{ github.ref_name }}_linux-amd64
-        ls -l celify_${{ github.ref_name }}_windows-amd64.exe
+        ls -l celify_${{ github.ref_name }}_linux-amd64.tar.gz
+        ls -l celify_${{ github.ref_name }}_windows-amd64.zip
     - name: Release
       id: release
       uses: actions/create-release@v1
@@ -76,8 +88,8 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.release.outputs.upload_url }}
-        asset_path: ./celify_${{ github.ref_name }}_linux-amd64/celify_${{ github.ref_name }}_linux-amd64
-        asset_name: celify_${{ github.ref_name }}_linux-amd64
+        asset_path: ./celify_${{ github.ref_name }}_linux-amd64.tar.gz/celify_${{ github.ref_name }}_linux-amd64.tar.gz
+        asset_name: celify-linux-amd64.tar.gz
         asset_content_type: application/octet-stream
 
     - name: Upload Release Assets (Windows)
@@ -86,6 +98,6 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.release.outputs.upload_url }}
-        asset_path: ./celify_${{ github.ref_name }}_windows-amd64.exe/celify_${{ github.ref_name }}_windows-amd64.exe
-        asset_name: celify_${{ github.ref_name }}_windows-amd64.exe
+        asset_path: ./celify_${{ github.ref_name }}_windows-amd64.zip/celify_${{ github.ref_name }}_windows-amd64.zip
+        asset_name: celify-windows-amd64.zip
         asset_content_type: application/octet-stream
