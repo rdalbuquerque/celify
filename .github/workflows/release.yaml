@@ -27,10 +27,10 @@ jobs:
         export GOOS=${{ matrix.goos }}
         export GOARCH=${{ matrix.goarch }}
         BINARY_NAME="celify_${{ github.ref_name }}_${{ matrix.goos }}-${{ matrix.goarch }}"
+        echo "BINARY_NAME=${BINARY_NAME}" >> $GITHUB_ENV
         if [ "${{ matrix.goos }}" = "windows" ]; then
           BINARY_NAME="$BINARY_NAME.exe"
         fi
-        echo "BINARY_NAME=${BINARY_NAME}" >> $GITHUB_ENV
         mkdir -p bin
         go build -o "$BINARY_NAME"
 
@@ -42,14 +42,22 @@ jobs:
     - name: Compress Binary (Windows)
       if: matrix.goos == 'windows'
       run: |
-        7z a ${{ env.BINARY_NAME }}.zip ${{ env.BINARY_NAME }}
+        7z a ${{ env.BINARY_NAME }}.zip ${{ env.BINARY_NAME }}.exe
 
     - name: Upload Artifact
+      if: matrix.goos == 'linux'
       uses: actions/upload-artifact@v2
       with:
-        name: ${{ env.BINARY_NAME }}
+        name: ${{ env.BINARY_NAME }}.tar.gz
         path: |
           ${{ env.BINARY_NAME }}.tar.gz
+
+    - name: Upload Artifact
+      if: matrix.goos == 'windows'
+      uses: actions/upload-artifact@v2
+      with:
+        name: ${{ env.BINARY_NAME }}.zip
+        path: |
           ${{ env.BINARY_NAME }}.zip
 
   release:
