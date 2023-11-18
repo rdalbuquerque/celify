@@ -32,7 +32,7 @@ jobs:
         fi
         echo "BINARY_NAME=${BINARY_NAME}" >> $GITHUB_ENV
         mkdir -p bin
-        go build -o "$BINARY_NAME" ./bin
+        go build -o "$BINARY_NAME"
 
     - name: Upload Artifact
       uses: actions/upload-artifact@v2
