@@ -5,13 +5,25 @@ os=$(uname | tr '[:upper:]' '[:lower:]')
 arch=$(uname -m | tr '[:upper:]' '[:lower:]' | sed -e s/x86_64/amd64/)
 
 # Define download URL
-url="https://github.com/rdalbuquerque/celify/releases/latest/download/celify-${os}-${arch}"
+tar="celify-${os}-${arch}.tar.gz"
+url="https://github.com/rdalbuquerque/celify/releases/latest/download"
+
+# Defined filename
+version=$(curl -s https://api.github.com/repos/rdalbuquerque/celify/releases/latest | jq -r '.tag_name')
+filename="celify_${version}_$os-$arch"
 
 # Download and install
-curl -L "$url" -o celify
-chmod +x celify
+echo "Downloading version ${version} of celify-$os-$arch..."
+curl -sL "$url/$tar" -o "/tmp/$tar"
+echo
 
-# Move to a location in PATH
-sudo mv celify /usr/local/bin/
+tar -xzf "/tmp/$tar" -C /tmp
+# rm "/tmp/$tar"
 
-echo "Celify CLI installed successfully"
+echo "Moving /tmp/$filename to /usr/local/bin/celify (you might be asked for your password due to sudo)"
+if [ -x "$(command -v sudo)" ]; then
+  sudo mv "/tmp/$filename" "/usr/local/bin/celify"
+else
+  mv "/tmp/$filename" "/usr/local/bin/celify"
+fi
+echo

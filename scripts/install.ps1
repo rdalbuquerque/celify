@@ -1,0 +1,35 @@
+# Determine OS and Architecture
+$os = "windows" # Assuming Windows, as this is a PowerShell script
+$arch = if ([System.Environment]::Is64BitOperatingSystem) { "amd64" } else { "386" }
+
+# Define download URL
+$tar = "celify-$os-$arch.zip"
+$url = "https://github.com/rdalbuquerque/celify/releases/latest/download"
+
+# Get the latest version
+$version = Invoke-RestMethod -Uri "https://api.github.com/repos/rdalbuquerque/celify/releases/latest" | Select-Object -ExpandProperty tag_name
+$filename = "celify_${version}_$os-$arch.exe"
+
+# Download and install
+Write-Host "Downloading version $version of celify-$os-$arch..."
+Invoke-WebRequest -Uri "$url/$tar" -OutFile "$env:TEMP\$tar"
+
+# Extracting the ZIP file
+Expand-Archive -Path "$env:TEMP\$tar" -DestinationPath $env:TEMP
+
+# Move the file to a specific location
+$destination = "$env:LOCALAPPDATA\celify\celify.exe"
+Write-Host "Moving $env:TEMP\$filename to $destination"
+New-Item -ItemType Directory -Force -Path "$env:LOCALAPPDATA\celify"
+Move-Item -Path "$env:TEMP\$filename" -Destination $destination
+
+# Add the celify.exe to the PATH if it's not
+$paths = $env:Path -split ";"
+if ($paths -notcontains "$env:LOCALAPPDATA\celify") {
+    Write-Host "Adding $env:LOCALAPPDATA\celify to the PATH"
+    $env:Path += ";$env:LOCALAPPDATA\celify"
+    Write-Host "Please alter your PATH variable to include $env:LOCALAPPDATA\celify permanently"
+}
+
+# Clean up
+Remove-Item "$env:TEMP\$tar"
