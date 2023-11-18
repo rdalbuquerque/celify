@@ -26,7 +26,7 @@ jobs:
       run: |
         export GOOS=${{ matrix.goos }}
         export GOARCH=${{ matrix.goarch }}
-        BINARY_NAME="celify_${{ github.ref }}_${{ matrix.goos }}-${{ matrix.goarch }}"
+        BINARY_NAME="celify_${{ github.ref_name }}_${{ matrix.goos }}-${{ matrix.goarch }}"
         if [ "${{ matrix.goos }}" = "windows" ]; then
           BINARY_NAME="$BINARY_NAME.exe"
         fi
@@ -67,8 +67,8 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.release.outputs.upload_url }}
-        asset_path: ./celify_${{ github.ref }}_linux-amd64
-        asset_name: celify_${{ github.ref }}_linux-amd64
+        asset_path: ./celify_${{ github.ref_name }}_linux-amd64
+        asset_name: celify_${{ github.ref_name }}_linux-amd64
         asset_content_type: application/octet-stream
 
     - name: Upload Release Assets (Windows)
