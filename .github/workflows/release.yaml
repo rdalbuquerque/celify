@@ -53,7 +53,10 @@ jobs:
       uses: actions/download-artifact@v2
       with:
         path: ./
-
+    - name: Run a multi-line script
+      run: |
+        pwd
+        ls -l
     - name: Release
       id: release
       uses: actions/create-release@v1
