@@ -1,0 +1,81 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        goos: [linux, windows]
+        goarch: [amd64]
+    steps:
+    - name: Check out code
+      uses: actions/checkout@v2
+
+    - name: Set up Go
+      uses: actions/setup-go@v2
+      with:
+        go-version: '^1.21'
+
+    - name: Build Binary
+      run: |
+        export GOOS=${{ matrix.goos }}
+        export GOARCH=${{ matrix.goarch }}
+        BINARY_NAME="celify_${{ github.ref }}_${{ matrix.goos }}-${{ matrix.goarch }}"
+        if [ "${{ matrix.goos }}" = "windows" ]; then
+          BINARY_NAME="$BINARY_NAME.exe"
+        fi
+        echo "BINARY_NAME=${BINARY_NAME}" >> $GITHUB_ENV
+        go build -o "$BINARY_NAME" ./cmd/celify
+
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v2
+      with:
+        name: ${{ matrix.goos }}-${{ matrix.goarch }}
+        path: ${{ env.BINARY_NAME }}
+
+  release:
+    name: Release
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+    - name: Download Artifacts
+      uses: actions/download-artifact@v2
+      with:
+        path: .
+
+    - name: Release
+      id: release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ github.ref }}
+        release_name: Release ${{ github.ref }}
+        draft: false
+        prerelease: false
+
+    - name: Upload Release Assets (Linux)
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.release.outputs.upload_url }}
+        asset_path: ./celify_${{ github.ref }}_linux-amd64
+        asset_name: celify_${{ github.ref }}_linux-amd64
+        asset_content_type: application/octet-stream
+
+    - name: Upload Release Assets (Windows)
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.release.outputs.upload_url }}
+        asset_path: ./celify_${{ github.ref }}_windows-amd64.exe
+        asset_name: celify_${{ github.ref }}_windows-amd64.exe
+        asset_content_type: application/octet-stream
