@@ -46,6 +46,8 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      packages: write
+
     steps:
     - name: Download Artifacts
       uses: actions/download-artifact@v2
@@ -69,7 +71,7 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.release.outputs.upload_url }}
-        asset_path: ./celify_${{ github.ref_name }}_linux-amd64
+        asset_path: .
         asset_name: celify_${{ github.ref_name }}_linux-amd64
         asset_content_type: application/octet-stream
 
@@ -79,6 +81,6 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.release.outputs.upload_url }}
-        asset_path: ./celify_${{ github.ref }}_windows-amd64.exe
+        asset_path: .
         asset_name: celify_${{ github.ref }}_windows-amd64.exe
         asset_content_type: application/octet-stream
