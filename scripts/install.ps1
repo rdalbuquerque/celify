@@ -15,13 +15,22 @@ Write-Host "Downloading version $version of celify-$os-$arch..."
 Invoke-WebRequest -Uri "$url/$tar" -OutFile "$env:TEMP\$tar"
 
 # Extracting the ZIP file
-Expand-Archive -Path "$env:TEMP\$tar" -DestinationPath $env:TEMP
+Expand-Archive -Path "$env:TEMP\$tar" -DestinationPath $env:TEMP -Force
 
 # Move the file to a specific location
 $destination = "$env:LOCALAPPDATA\celify\celify.exe"
 Write-Host "Moving $env:TEMP\$filename to $destination"
-New-Item -ItemType Directory -Force -Path "$env:LOCALAPPDATA\celify"
-Move-Item -Path "$env:TEMP\$filename" -Destination $destination
+$null = New-Item -ItemType Directory -Force -Path "$env:LOCALAPPDATA\celify"
+if (Test-Path $destination) {
+    $answer = Read-Host "celify already installed, would you like to overwrite it? (y/n)"
+    if ($answer -eq "y") {
+        Move-Item -Path "$env:TEMP\$filename" -Destination $destination -Force
+    } else {
+        Write-Host "Aborting..."
+        Remove-Item "$env:TEMP\$tar"
+        exit 0
+    }
+}
 
 # Add the celify.exe to the PATH if it's not
 $paths = $env:Path -split ";"
