@@ -31,7 +31,8 @@ jobs:
           BINARY_NAME="$BINARY_NAME.exe"
         fi
         echo "BINARY_NAME=${BINARY_NAME}" >> $GITHUB_ENV
-        go build -o "$BINARY_NAME" ./cmd/celify
+        mkdir -p bin
+        go build -o "$BINARY_NAME" ./bin
 
     - name: Upload Artifact
       uses: actions/upload-artifact@v2
