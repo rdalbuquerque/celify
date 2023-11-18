@@ -54,7 +54,7 @@ jobs:
       id: release
       uses: actions/create-release@v1
       env:
-        GH_TOKEN: ${{ secrets.GH_TOKEN }}
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         tag_name: ${{ github.ref }}
         release_name: Release ${{ github.ref }}
@@ -64,7 +64,7 @@ jobs:
     - name: Upload Release Assets (Linux)
       uses: actions/upload-release-asset@v1
       env:
-        GH_TOKEN: ${{ secrets.GH_TOKEN }}
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.release.outputs.upload_url }}
         asset_path: ./celify_${{ github.ref_name }}_linux-amd64
@@ -74,7 +74,7 @@ jobs:
     - name: Upload Release Assets (Windows)
       uses: actions/upload-release-asset@v1
       env:
-        GH_TOKEN: ${{ secrets.GH_TOKEN }}
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.release.outputs.upload_url }}
         asset_path: ./celify_${{ github.ref }}_windows-amd64.exe
