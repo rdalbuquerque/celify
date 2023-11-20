@@ -1,8 +1,8 @@
 package evaluator
 
 import (
-	"celify/pkg/helpers"
 	"celify/pkg/models"
+	"fmt"
 	"reflect"
 	"testing"
 )
@@ -30,9 +30,7 @@ var evalTests = []struct {
 		},
 		expected: []models.EvaluationResult{
 			{
-				Expression:       "object.foo == 'bar'",
-				ValidationResult: helpers.BoolPtr(true),
-				EvaluatedObject:  "bar",
+				Expression: "object.foo == 'bar'",
 			},
 		},
 	},
@@ -55,11 +53,9 @@ var evalTests = []struct {
 		},
 		expected: []models.EvaluationResult{
 			{
-				Expression:        "object.foo == 'baz'",
-				ValidationResult:  helpers.BoolPtr(false),
-				EvaluatedObject:   "bar",
-				FailedRule:        "object.foo == 'baz'",
-				MessageExpression: "foo should be baz but was bar",
+				Expression:      "object.foo == 'baz'",
+				EvaluatedObject: "bar",
+				ValidationError: fmt.Errorf("message: foo should be baz but was bar"),
 			},
 		},
 	},

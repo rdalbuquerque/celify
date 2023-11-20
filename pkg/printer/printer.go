@@ -22,24 +22,16 @@ func NewPrinter(evaluator *evaluator.Evaluator) *Printer {
 }
 
 func (p *Printer) PrintResults(results []models.EvaluationResult) {
+	fmt.Println()
 	for _, result := range results {
 		color.New(color.Bold).Add(color.Underline).Printf("validation \"%s\":\n", result.Expression)
 		if result.ValidationError != nil {
-			color.New(color.FgRed).Printf("Error: %v\n\n", result.ValidationError)
-			continue
-		}
-		if result.ValidationResult == nil {
-			color.New(color.FgHiYellow).Printf("%s result is not true or false\n\n", getErrorStr())
-			continue
-		}
-		success := *result.ValidationResult
-		if !success {
-			fmt.Printf("%s %s\n", getErrorStr(), color.YellowString(result.MessageExpression))
+			fmt.Printf("%s %s\n", getErrorStr(), color.YellowString(result.ValidationError.Error()))
 			printEvaluatedObject(result.EvaluatedObject, p.Evaluator.TargetData.Format)
-			fmt.Println()
 			continue
 		}
-		color.New(color.FgGreen).Printf("Success: %v\n", success)
+		color.New(color.FgGreen).Println("Success: true")
+		fmt.Println()
 	}
 }
 
@@ -71,6 +63,7 @@ func printEvaluatedObject(obj interface{}, format string) {
 }
 
 func FmtError(err error) error {
+	fmt.Println()
 	summaryStr := color.New(color.FgRed).Add(color.Underline).Add(color.Bold).Sprint("Error Summary:")
 	errStr := color.New(color.FgRed).Sprint(err)
 	return fmt.Errorf("%s\n%s", summaryStr, errStr)

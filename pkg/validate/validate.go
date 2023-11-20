@@ -25,9 +25,6 @@ func ValidateSingleExpression(expression, targetInput string) error {
 		return errors.Errorf("Error creating evaluator: %v", err)
 	}
 	result := eval.EvaluateRule(models.ValidationRule{Expression: expression})
-	if result.ValidationError != nil {
-		return result.ValidationError
-	}
 	printer := printer.NewPrinter(eval)
 	printer.PrintResults([]models.EvaluationResult{result})
 	return getErrors([]models.EvaluationResult{result})
@@ -94,19 +91,6 @@ func getErrors(results []models.EvaluationResult) error {
 	for _, result := range results {
 		if result.ValidationError != nil {
 			multiErr.Errors = append(multiErr.Errors, fmt.Errorf("expression: %s\n\t  error: %v", result.Expression, result.ValidationError))
-			continue
-		}
-		if result.ValidationResult == nil {
-			multiErr.Errors = append(multiErr.Errors, fmt.Errorf("expression: %s\n\t  error: Did not evaluate to bool", result.Expression))
-			continue
-		}
-		if !*result.ValidationResult {
-			errStr := fmt.Sprintf("expression: %s", result.Expression)
-			if result.MessageExpression != "" {
-				msgExprErrStr := fmt.Sprintf("error: %s", result.MessageExpression)
-				errStr = fmt.Sprintf("%s\n\t  %s", errStr, msgExprErrStr)
-			}
-			multiErr.Errors = append(multiErr.Errors, errors.New(errStr))
 		}
 	}
 	if len(multiErr.Errors) == 0 {

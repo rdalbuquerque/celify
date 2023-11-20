@@ -52,40 +52,12 @@ func (ev *Evaluator) executeEvaluation(expression string, expectedReturnType ref
 
 func (ev *Evaluator) EvaluateRule(rule models.ValidationRule) models.EvaluationResult {
 	result, err := ev.executeEvaluation(rule.Expression, BoolType)
-	if err != nil {
-		return models.EvaluationResult{
-			Expression:      rule.Expression,
-			ValidationError: fmt.Errorf("error evaluating expression: %w", err),
-		}
-	}
-	boolResult := result.(bool)
-
-	objExpr := helpers.ExtractObject(rule.Expression)
-	evalObj, err := ev.executeEvaluation(objExpr, AnyType)
-	if err != nil {
-		evalObj = "unable to evaluate object"
+	if err != nil || !result.(bool) {
+		return ev.handleFailedRule(rule, err, result)
 	}
 
-	if !boolResult && rule.MessageExpression != "" {
-		msgExpr, err := ev.executeEvaluation(rule.MessageExpression, StringType)
-		if err != nil {
-			return models.EvaluationResult{
-				Expression:      rule.Expression,
-				ValidationError: fmt.Errorf("error evaluating message expression: %w", err),
-			}
-		}
-		return models.EvaluationResult{
-			Expression:        rule.Expression,
-			ValidationResult:  &boolResult,
-			EvaluatedObject:   evalObj,
-			FailedRule:        rule.Expression,
-			MessageExpression: msgExpr.(string),
-		}
-	}
 	return models.EvaluationResult{
-		Expression:       rule.Expression,
-		ValidationResult: &boolResult,
-		EvaluatedObject:  evalObj,
+		Expression: rule.Expression,
 	}
 }
 
@@ -107,4 +79,33 @@ func (ev *Evaluator) getProgram(expression string) (cel.Program, error) {
 		return nil, errors.Errorf("Failed to generate program for expression '%s': %v", expression, err)
 	}
 	return pgr, nil
+}
+
+func (ev *Evaluator) handleFailedRule(rule models.ValidationRule, executionError error, result interface{}) models.EvaluationResult {
+	objStr := helpers.ExtractObject(rule.Expression)
+	evaluatedObj, err := ev.executeEvaluation(objStr, AnyType)
+	if err != nil {
+		evaluatedObj = fmt.Errorf("unable to evaluate object: %w", err)
+	}
+
+	var validationError error
+	if rule.MessageExpression != "" {
+		msgExpr, err := ev.executeEvaluation(rule.MessageExpression, StringType)
+		if err != nil {
+			msgExpr = fmt.Sprintf("unable to evaluate message expression: %v", err)
+		}
+		validationError = fmt.Errorf("message: %s", msgExpr.(string))
+	} else {
+		validationError = errors.New("message: validation failed")
+	}
+
+	if executionError != nil {
+		validationError = fmt.Errorf("%w | %w", executionError, validationError)
+	}
+
+	return models.EvaluationResult{
+		Expression:      rule.Expression,
+		ValidationError: validationError,
+		EvaluatedObject: evaluatedObj,
+	}
 }

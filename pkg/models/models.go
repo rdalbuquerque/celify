@@ -15,10 +15,7 @@ type TargetData struct {
 }
 
 type EvaluationResult struct {
-	Expression        string
-	ValidationResult  *bool
-	EvaluatedObject   interface{}
-	FailedRule        string
-	MessageExpression string
-	ValidationError   error
+	Expression      string
+	EvaluatedObject interface{}
+	ValidationError error
 }
