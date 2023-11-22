@@ -15,7 +15,7 @@ Write-Host "Downloading version $version of celify-$os-$arch..."
 Invoke-WebRequest -Uri "$url/$tar" -OutFile "$env:TEMP\$tar"
 if (!(Test-Path "$env:TEMP\$tar")) {
     Write-Host "Failed to download celify-$os-$arch"
-    exit 1
+    throw "Failed to download celify-$os-$arch"
 }
 
 # Extracting the ZIP file
@@ -32,7 +32,7 @@ if (Test-Path $destination) {
     } else {
         Write-Host "Aborting..."
         Remove-Item "$env:TEMP\$tar"
-        exit 0
+        return
     }
 }
 
@@ -45,10 +45,10 @@ if ($paths -notcontains "$env:LOCALAPPDATA\celify") {
 }
 celify --version
 if ($LASTEXITCODE -ne 0) {
-    Write-Host "Failed to install celify"
-    exit 1
+    throw "Failed to install celify"
+} else {
+    Write-Host "celify installed successfully"
 }
-Write-Host "celify installed successfully"
 
 # Clean up
 Remove-Item "$env:TEMP\$tar"
