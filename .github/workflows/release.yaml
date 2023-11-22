@@ -33,10 +33,12 @@ jobs:
         fi
         mkdir -p bin
         go build -ldflags "-X celify/cmd.version=${{ github.ref_name }}" -o "$BINARY_NAME"
-        ./$BINARY_NAME --version
-        # test last exit code
-        if [ $? -ne 0 ]; then
-          exit 1
+        if [ "${{ matrix.goos }}" = "linux" ]; then
+          ./$BINARY_NAME --version
+          # test last exit code
+          if [ $? -ne 0 ]; then
+            exit 1
+          fi
         fi
 
     - name: Compress Binary (Linux)
