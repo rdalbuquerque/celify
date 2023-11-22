@@ -15,6 +15,10 @@ filename="celify_${version}_$os-$arch"
 # Download and install
 echo "Downloading version ${version} of celify-$os-$arch..."
 curl -sL "$url/$tar" -o "/tmp/$tar"
+if [ ! -f "/tmp/$tar" ]; then
+  echo "Error downloading celify-$os-$arch."
+  exit 1
+fi
 echo
 
 tar -xzf "/tmp/$tar" -C /tmp
@@ -25,5 +29,13 @@ if [ -x "$(command -v sudo)" ]; then
   sudo mv "/tmp/$filename" "/usr/local/bin/celify"
 else
   mv "/tmp/$filename" "/usr/local/bin/celify"
+fi
+celify --version
+# test exit code
+if [ $? -eq 0 ]; then
+  echo "celify installed successfully"
+else
+  echo "Failed to install celify"
+  exit 1
 fi
 echo

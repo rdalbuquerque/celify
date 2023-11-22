@@ -10,32 +10,21 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var version string
+
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
 	Use:   "celify",
 	Short: "Validate yaml or json files using CEL expressions",
-	Long: `celify is a CLI tool designed to validate structured data, supporting both JSON and YAML formats, against a defined set of Common Expression Language (CEL) rules.
-
-	The tool aims to provide developers and operators with a flexible and concise way to enforce custom validation checks on their data, ensuring data consistency, correctness, and adherence to specified rules.
+	Long: `celify is a CLI tool designed to interact structured data, supporting both JSON and YAML formats.
 	
 	Features:
 	- Support for both JSON and YAML input formats.
 	- Ability to define custom validation rules using CEL
 	- Flexibility to provide input data and rules via files or raw strings.
 	- Detailed error messages guiding users to the exact validation failure point.
-	
-	Examples:
-	
-	1. Validate a YAML file against a set of rules:
-	   $ celify validate --target deployment.yaml --validations validations.yaml
-
-	1. Validate a JSON file against a set of rules:
-	   $ celify validate --target tfplan.json --validations validations.yaml
-	
-	2. Validate remote data:
-	   $ celify validate --target "$(curl -s https://example.com/data.json)" --validations validations.yaml
-	
 	`,
+	Version: version,
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.

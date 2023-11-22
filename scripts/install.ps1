@@ -13,6 +13,10 @@ $filename = "celify_${version}_$os-$arch.exe"
 # Download and install
 Write-Host "Downloading version $version of celify-$os-$arch..."
 Invoke-WebRequest -Uri "$url/$tar" -OutFile "$env:TEMP\$tar"
+if (!(Test-Path "$env:TEMP\$tar")) {
+    Write-Host "Failed to download celify-$os-$arch"
+    exit 1
+}
 
 # Extracting the ZIP file
 Expand-Archive -Path "$env:TEMP\$tar" -DestinationPath $env:TEMP -Force
@@ -39,6 +43,12 @@ if ($paths -notcontains "$env:LOCALAPPDATA\celify") {
     $env:Path += ";$env:LOCALAPPDATA\celify"
     Write-Host "Please alter your PATH variable to include $env:LOCALAPPDATA\celify permanently"
 }
+celify --version
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "Failed to install celify"
+    exit 1
+}
+Write-Host "celify installed successfully"
 
 # Clean up
 Remove-Item "$env:TEMP\$tar"
