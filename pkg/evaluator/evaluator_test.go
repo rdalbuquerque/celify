@@ -53,8 +53,13 @@ var evalTests = []struct {
 		},
 		expected: []models.EvaluationResult{
 			{
-				Expression:      "object.foo == 'baz'",
-				EvaluatedObject: "bar",
+				Expression: "object.foo == 'baz'",
+				EvaluatedObjects: []models.EvaluatedObject{
+					{
+						Expression: "object.foo",
+						Object:     "bar",
+					},
+				},
 				ValidationError: fmt.Errorf("message: foo should be baz but was bar"),
 			},
 		},

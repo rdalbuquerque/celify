@@ -10,7 +10,7 @@
             "request": "launch",
             "mode": "auto",
             "program": "${workspaceFolder}/main.go",
-            "args": ["validate","--expression","object.jobs.build.steps.all(s, s.uses != null)","--target", "target.yaml"]
+            "args": ["validate","--expression","has(object.spec.template.contains)","--target", "./target.yaml"]
         }
     ]
 }

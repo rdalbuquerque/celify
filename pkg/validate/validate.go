@@ -14,7 +14,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-func ValidateSingleExpression(expression, targetInput string) error {
+func ValidateSingleExpression(expression, targetInput string, supressObjects bool) error {
 	targetData, err := readTarget(targetInput)
 	if err != nil {
 		return errors.Errorf("Error reading target: %v", err)
@@ -26,11 +26,11 @@ func ValidateSingleExpression(expression, targetInput string) error {
 	}
 	result := eval.EvaluateRule(models.ValidationRule{Expression: expression})
 	printer := printer.NewPrinter(eval)
-	printer.PrintResults([]models.EvaluationResult{result})
+	printer.PrintResults([]models.EvaluationResult{result}, supressObjects)
 	return getErrors([]models.EvaluationResult{result})
 }
 
-func Validate(validationInput, targetInput string) error {
+func Validate(validationInput, targetInput string, supressObjects bool) error {
 	// Load validation rules
 	var validations models.ValidationConfig
 	_, err := unmarshalData(validationInput, &validations)
@@ -50,7 +50,7 @@ func Validate(validationInput, targetInput string) error {
 	}
 	results := eval.Evaluate(validations)
 	printer := printer.NewPrinter(eval)
-	printer.PrintResults(results)
+	printer.PrintResults(results, supressObjects)
 	return getErrors(results)
 }
 

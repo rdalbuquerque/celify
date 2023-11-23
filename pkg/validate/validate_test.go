@@ -107,7 +107,7 @@ foo: baz
 
 func TestValidateWithRawData(t *testing.T) {
 	for _, tc := range validateTestCases {
-		err := Validate(tc.validations, tc.target)
+		err := Validate(tc.validations, tc.target, true)
 		if err != nil && tc.expectedError == nil {
 			t.Errorf("Expected no error, got %v", err)
 		}
@@ -126,7 +126,7 @@ func TestValidateWithFiles(t *testing.T) {
 			t.Errorf("Error creating target file: %v", err)
 			t.FailNow()
 		}
-		err = Validate(validationsFile.Name(), targetFile.Name())
+		err = Validate(validationsFile.Name(), targetFile.Name(), true)
 		if err != nil && tc.expectedError == nil {
 			t.Errorf("Expected no error, got %v", err)
 		}
@@ -167,7 +167,7 @@ foo: baz
 
 func TestValidateSingleExpressionWithRawData(t *testing.T) {
 	for _, tc := range validateSingleExpressionTestCases {
-		err := ValidateSingleExpression(tc.expression, tc.target)
+		err := ValidateSingleExpression(tc.expression, tc.target, true)
 		if err != nil && !tc.errorExpected {
 			t.Errorf("Expected no error, got %v", err)
 		}
@@ -184,7 +184,7 @@ func TestValidateSingleExpressionWithFiles(t *testing.T) {
 			t.Errorf("Error creating target file: %v", err)
 			t.FailNow()
 		}
-		err = ValidateSingleExpression(tc.expression, targetFile.Name())
+		err = ValidateSingleExpression(tc.expression, targetFile.Name(), true)
 		if err != nil && !tc.errorExpected {
 			t.Errorf("Expected no error, got %v", err)
 		}

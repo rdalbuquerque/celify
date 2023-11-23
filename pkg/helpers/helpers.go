@@ -2,6 +2,7 @@ package helpers
 
 import (
 	"encoding/json"
+	"fmt"
 	"regexp"
 	"strings"
 
@@ -9,24 +10,22 @@ import (
 	"github.com/pkg/errors"
 )
 
-func ExtractObject(input string) string {
-	re := regexp.MustCompile(`object(?:\.[^.()\s+]+)*`)
-	matched := re.FindString(input)
-	if matched != "" {
-		parts := strings.Split(matched, ".")
-		lastPart := parts[len(parts)-1]
+func ExtractObjects(input string) []string {
+	re := regexp.MustCompile(`object(?:\.[^\s+\)]+)*`)
+	matches := re.FindAllString(input, -1)
+	objects := []string{}
+	for _, match := range matches {
+		if match != "" {
+			parts := strings.Split(match, ".")
+			lastPart := parts[len(parts)-1]
+			if strings.ContainsAny(lastPart, "(") {
+				match = strings.Join(parts[:len(parts)-1], ".")
+			}
 
-		// Define the macros
-		macros := map[string]bool{
-			"all": true, "exists": true, "exists_one": true, "filter": true, "map": true,
 		}
-
-		// Check if the last part is a macro and reconstruct the string without it if so
-		if macros[lastPart] {
-			matched = strings.Join(parts[:len(parts)-1], ".")
-		}
+		objects = append(objects, match)
 	}
-	return matched
+	return objects
 }
 
 func UnmarshalData(data []byte, target interface{}) (string, error) {
@@ -44,7 +43,12 @@ func MarshalData(target interface{}, format string) ([]byte, error) {
 	if format == "yaml" {
 		return yaml.Marshal(target)
 	} else if format == "json" {
-		return json.Marshal(target)
+		jsonStr, err := json.MarshalIndent(target, "", "  ")
+		if err != nil {
+			return nil, err
+		}
+		jsonStrln := fmt.Sprintf("%s\n", jsonStr)
+		return []byte(jsonStrln), nil
 	} else {
 		return nil, errors.Errorf("Invalid format '%s' provided", format)
 	}

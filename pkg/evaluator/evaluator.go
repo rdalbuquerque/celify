@@ -82,10 +82,17 @@ func (ev *Evaluator) getProgram(expression string) (cel.Program, error) {
 }
 
 func (ev *Evaluator) handleFailedRule(rule models.ValidationRule, executionError error, result interface{}) models.EvaluationResult {
-	objStr := helpers.ExtractObject(rule.Expression)
-	evaluatedObj, err := ev.executeEvaluation(objStr, AnyType)
-	if err != nil {
-		evaluatedObj = fmt.Errorf("unable to evaluate object: %w", err)
+	objectsExpr := helpers.ExtractObjects(rule.Expression)
+	objects := []models.EvaluatedObject{}
+	for _, objExpr := range objectsExpr {
+		evaluatedObj, err := ev.executeEvaluation(objExpr, AnyType)
+		if err != nil {
+			evaluatedObj = fmt.Sprintf("unable to evaluate object: %v", err)
+		}
+		objects = append(objects, models.EvaluatedObject{
+			Expression: objExpr,
+			Object:     evaluatedObj,
+		})
 	}
 
 	var validationError error
@@ -104,8 +111,8 @@ func (ev *Evaluator) handleFailedRule(rule models.ValidationRule, executionError
 	}
 
 	return models.EvaluationResult{
-		Expression:      rule.Expression,
-		ValidationError: validationError,
-		EvaluatedObject: evaluatedObj,
+		Expression:       rule.Expression,
+		ValidationError:  validationError,
+		EvaluatedObjects: objects,
 	}
 }

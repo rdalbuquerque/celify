@@ -11,6 +11,7 @@ import (
 var target string
 var validations string
 var expression string
+var supressObjects bool
 
 var validateCmd = &cobra.Command{
 	SilenceErrors: true,
@@ -41,9 +42,9 @@ var validateCmd = &cobra.Command{
 		}
 		cmd.SilenceUsage = true
 		if validations != "" {
-			return validate.Validate(validations, target)
+			return validate.Validate(validations, target, supressObjects)
 		} else {
-			return validate.ValidateSingleExpression(expression, target)
+			return validate.ValidateSingleExpression(expression, target, supressObjects)
 		}
 	},
 }
@@ -55,4 +56,5 @@ func init() {
 	validateCmd.Flags().StringVarP(&target, "target", "t", "", "Path to target file or raw string data")
 	validateCmd.Flags().StringVarP(&validations, "validations", "v", "", "Path to the validations YAML file or raw string data - this has to be in correcy yaml format")
 	validateCmd.Flags().StringVarP(&expression, "expression", "e", "", "single cel expression to evaluate against the target data")
+	validateCmd.Flags().BoolVarP(&supressObjects, "supress-objects", "s", false, "supress objects from output")
 }
