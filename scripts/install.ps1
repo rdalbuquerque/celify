@@ -26,14 +26,8 @@ $destination = "$env:LOCALAPPDATA\celify\celify.exe"
 Write-Host "Moving $env:TEMP\$filename to $destination"
 $null = New-Item -ItemType Directory -Force -Path "$env:LOCALAPPDATA\celify"
 if (Test-Path $destination) {
-    $answer = Read-Host "celify already installed, would you like to overwrite it? (y/n)"
-    if ($answer -eq "y") {
-        Move-Item -Path "$env:TEMP\$filename" -Destination $destination -Force
-    } else {
-        Write-Host "Aborting..."
-        Remove-Item "$env:TEMP\$tar"
-        return
-    }
+    Write-Warning "Overwriting $destination"
+    Move-Item -Path "$env:TEMP\$filename" -Destination $destination -Force
 }
 
 # Add the celify.exe to the PATH if it's not
